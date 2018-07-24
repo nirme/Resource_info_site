@@ -1,0 +1,3 @@
+mysql -u sql_root mysql < table_create_DBs.sql
+mysql -u sql_root amg < table_amg.sql
+mysql -u sql_root amg < amg_dump_2012-03-14_0147.sql
