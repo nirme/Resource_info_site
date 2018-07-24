@@ -1,0 +1,41 @@
+#!/bin/bash
+
+user="mysql_backup"
+pass="kETrePHaChaq8zet"
+
+
+
+dumps=`find ./DB_dumps/ -maxdepth 1 -name 'amg_dump_*.sql'`
+w="./aaaaaaa";
+for x in $dumps
+do
+    if [ $x > $w ];
+	then
+		w=$x
+	fi
+done
+
+mysql -u $user -p$pass amg < $w
+
+
+bins=`find ./DB_dumps/bin/ -maxdepth 1 -name 'mysql-bin.*' | sort`
+
+if [ -e tmp-bin ];
+then
+	rm tmp-bin
+fi
+
+touch tmp-bin
+
+for x in $bins
+do
+	mysqlbinlog $x >> tmp-bin
+done
+
+cat tmp-bin | sed 's/insert/INSERT/' | sed 's/\(^INSERT \)/INSERT IGNORE /' > tmp-bin2
+
+mysql -u $user -p$pass amg < tmp-bin2
+
+rm tmp-bin
+rm tmp-bin2
+

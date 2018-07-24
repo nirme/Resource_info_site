@@ -1,0 +1,52 @@
+#!/bin/bash
+
+user='mysql_backup'
+pass='kETrePHaChaq8zet'
+dir='/srv/http/my_desk/DB_dumps/'
+binDir='/var/lib/mysql/'
+binIndex='mysql-bin.index'
+
+##  MAKE FULL DATABASE DUMP AND FLUSH LOGS
+date=`date -u +"%F_%H-%M-%S"`
+fname=$dir'amg_dump_'$date'.sql'
+mysqldump --user=$user --password=$pass --flush-logs --master-data=1 --complete-insert --quote-names --order-by-primary --lock-tables --extended-insert --dump-date --comments --result-file=$fname  amg
+binname=`cat $fname | awk "/^CHANGE MASTER TO MASTER_LOG_FILE='/" | awk '{ str = substr($0, match($0, "'"'"'") + 1); str = substr(str, 1, match(str, "'"'"'") - 1); print str; } '`
+echo "PURGE MASTER LOGS TO '$binname'" | mysql -u $user -p$pass
+
+dn=$dir'amg_dump_*.sql'
+files=`ls $dn`
+
+##  REMOVE OLDER DUMPS
+for x in $files
+do
+	if [ "$x" != "$fname" ]
+	then
+		rm $x
+	fi
+done
+
+
+## COPY ALL BINARY LOGS
+binFiles=$binDir'mysql-bin.*'
+binFiles=`ls $binFiles | awk '!/index$/'`
+
+for x in $binFiles
+do
+	cp -u $x $dir"/bin/"
+done
+
+
+## REMOVE OLD BINARY LOGS
+bd=$dir'bin/'
+bn=$bd'mysql-bin.*'
+len=${#bd}
+binFilesOld=`ls $bn`
+
+for x in $binFilesOld
+do
+	if [ "$binname" \> "${x:$len}" ]
+	then
+		rm $x
+	fi
+done
+
